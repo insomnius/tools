@@ -38,7 +38,7 @@ func main() {
 		}
 
 		// Create debug folder if needed
-		debugFolder := filepath.Join(filepath.Dir(path), "debug")
+		debugFolder := "./debug"
 		if _, err := os.Stat(debugFolder); os.IsNotExist(err) {
 			os.Mkdir(debugFolder, 0755)
 		}
@@ -50,8 +50,12 @@ func main() {
 
 		if conf.Debug {
 			baseName := filepath.Base(path)
-			conf.DebugParameter.PreprocessedImagePath = filepath.Join(debugFolder, "preprocessed_"+baseName)
-			conf.DebugParameter.VisualizedImagePath = filepath.Join(debugFolder, "visualized_"+baseName)
+			targetFolder := filepath.Join(debugFolder, baseName)
+			if _, err := os.Stat(targetFolder); os.IsNotExist(err) {
+				os.Mkdir(targetFolder, 0755)
+			}
+			conf.DebugParameter.PreprocessedImagePath = filepath.Join(targetFolder, "preprocessed_"+baseName)
+			conf.DebugParameter.VisualizedImagePath = filepath.Join(targetFolder, "visualized_"+baseName)
 		}
 
 		// Generate hash
