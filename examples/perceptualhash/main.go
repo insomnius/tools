@@ -45,10 +45,9 @@ func main() {
 
 		// Configure perceptual hash with debug options
 		conf := perceptualhash.Config{
-			Debug: false, // Set to true if you want debug images
+			Debug: true,
 		}
 
-		// Set debug paths if debugging is enabled
 		if conf.Debug {
 			baseName := filepath.Base(path)
 			conf.DebugParameter.PreprocessedImagePath = filepath.Join(debugFolder, "preprocessed_"+baseName)
