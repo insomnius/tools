@@ -1,3 +1,4 @@
+// Package perceptualhash provides utilities for computing a perceptual hash of images.
 package perceptualhash
 
 import (
@@ -13,6 +14,7 @@ import (
 	"golang.org/x/image/draw"
 )
 
+// Config holds debugging options for perceptual hashing.
 type Config struct {
 	Debug          bool
 	DebugParameter struct {
@@ -27,6 +29,8 @@ var defaultConfig = Config{
 
 var ErrUnsupportedFormat = errors.New("image format is not supported")
 
+// FromPath computes the perceptual hash of the image at filePath.
+// It optionally accepts a custom configuration.
 func FromPath(filePath string, configs ...Config) (string, error) {
 	// load the configurations
 	config := defaultConfig
@@ -69,7 +73,7 @@ func FromPath(filePath string, configs ...Config) (string, error) {
 	return fmt.Sprintf("%016x", hash), nil
 }
 
-// preprocessImage convert image to grayscale and convert it to 32x32
+// preprocessImage resizes the image to 32x32 and converts it to grayscale.
 func preprocessImage(inputImage image.Image, config Config) *image.Gray {
 	resizedImage := image.NewGray(image.Rect(0, 0, 32, 32))
 	draw.CatmullRom.Scale(resizedImage, resizedImage.Bounds(), inputImage, inputImage.Bounds(), draw.Over, nil)
@@ -77,6 +81,7 @@ func preprocessImage(inputImage image.Image, config Config) *image.Gray {
 	return resizedImage
 }
 
+// saveImage writes the given image to location in the specified format.
 func saveImage(img image.Image, format string, location string) error {
 	outputImage, err := os.OpenFile(location, os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {
@@ -102,6 +107,7 @@ func saveImage(img image.Image, format string, location string) error {
 	return nil
 }
 
+// generateHash computes the DCT-based 64-bit hash from a 32x32 grayscale image.
 func generateHash(img *image.Gray) uint64 {
 	var pixels [][]float64
 	for y := 0; y < 32; y++ {
@@ -137,6 +143,7 @@ func generateHash(img *image.Gray) uint64 {
 	return hash
 }
 
+// dct performs a 2D Discrete Cosine Transform on the input matrix.
 func dct(matrix [][]float64) [][]float64 {
 	N := len(matrix)
 	dct := make([][]float64, N)
@@ -166,6 +173,7 @@ func dct(matrix [][]float64) [][]float64 {
 	return dct
 }
 
+// visualizeHash creates a small 8x8 image from hash bits for debugging.
 func visualizeHash(hash uint64, format string, config Config) error {
 	size := 8
 	img := image.NewGray(image.Rect(0, 0, size, size))
