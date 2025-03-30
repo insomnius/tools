@@ -4,9 +4,9 @@ import (
 	"errors"
 	"fmt"
 	"image"
+	"image/color"
 	"image/jpeg"
 	"image/png"
-	"log"
 	"math"
 	"os"
 
@@ -16,8 +16,8 @@ import (
 type Config struct {
 	Debug          bool
 	DebugParameter struct {
-		ResizedImagePath   string
-		GrayscaleImagePath string
+		PreprocessedImagePath string
+		VisualizedImagePath   string
 	}
 }
 
@@ -54,13 +54,19 @@ func FromPath(filePath string, configs ...Config) (string, error) {
 	// 3. Preprocess the image
 	preprocessedImage := preprocessImage(decodedImage, config)
 	if config.Debug {
-		if err := saveImage(preprocessedImage, format, config.DebugParameter.ResizedImagePath); err != nil {
+		if err := saveImage(preprocessedImage, format, config.DebugParameter.PreprocessedImagePath); err != nil {
 			return "", err
 		}
 	}
 
 	hash := generateHash(preprocessedImage)
-	return hash, nil
+	if config.Debug {
+		if err := visualizeHash(hash, format, config); err != nil {
+			return "", err
+		}
+	}
+
+	return fmt.Sprintf("%016x", hash), nil
 }
 
 // preprocessImage convert image to grayscale and convert it to 32x32
@@ -74,7 +80,7 @@ func preprocessImage(inputImage image.Image, config Config) *image.Gray {
 func saveImage(img image.Image, format string, location string) error {
 	outputImage, err := os.OpenFile(location, os.O_CREATE|os.O_RDWR, 0600)
 	if err != nil {
-		log.Fatal(err)
+		return err
 	}
 	defer outputImage.Close()
 
@@ -96,7 +102,7 @@ func saveImage(img image.Image, format string, location string) error {
 	return nil
 }
 
-func generateHash(img *image.Gray) string {
+func generateHash(img *image.Gray) uint64 {
 	var pixels [][]float64
 	for y := 0; y < 32; y++ {
 		row := make([]float64, 32)
@@ -107,7 +113,7 @@ func generateHash(img *image.Gray) string {
 		pixels = append(pixels, row)
 	}
 
-	dctMatrix := DCT(pixels)
+	dctMatrix := dct(pixels)
 	var dctValues []float64
 	for y := 0; y < 8; y++ {
 		for x := 0; x < 8; x++ {
@@ -115,24 +121,23 @@ func generateHash(img *image.Gray) string {
 		}
 	}
 
-	// Compute the average DCT value (excluding DC component at index 0)
 	var sum float64
 	for i := 1; i < len(dctValues); i++ {
 		sum += dctValues[i]
 	}
-	average := sum / 63 // Exclude DC component
+	average := sum / 63
 
 	var hash uint64
 	for i, value := range dctValues {
-		if i > 0 && value > average { // Skip the DC component
+		if i > 0 && value > average {
 			hash |= 1 << i
 		}
 	}
 
-	return fmt.Sprintf("%016x", hash)
+	return hash
 }
 
-func DCT(matrix [][]float64) [][]float64 {
+func dct(matrix [][]float64) [][]float64 {
 	N := len(matrix)
 	dct := make([][]float64, N)
 	for u := 0; u < N; u++ {
@@ -141,13 +146,12 @@ func DCT(matrix [][]float64) [][]float64 {
 			sum := 0.0
 			for x := 0; x < N; x++ {
 				for y := 0; y < N; y++ {
-					// Apply DCT formula
 					sum += matrix[x][y] *
 						math.Cos((float64(2*x+1)*float64(u)*math.Pi)/(2*float64(N))) *
 						math.Cos((float64(2*y+1)*float64(v)*math.Pi)/(2*float64(N)))
 				}
 			}
-			// Normalize coefficients
+
 			cu := 1.0
 			cv := 1.0
 			if u == 0 {
@@ -160,4 +164,25 @@ func DCT(matrix [][]float64) [][]float64 {
 		}
 	}
 	return dct
+}
+
+func visualizeHash(hash uint64, format string, config Config) error {
+	size := 8
+	img := image.NewGray(image.Rect(0, 0, size, size))
+	for i := range size {
+		for j := range size {
+			bitPosition := uint(i*size + j)
+			bit := (hash >> bitPosition) & 1
+			var pixelColor color.Gray
+
+			if bit == 1 {
+				pixelColor = color.Gray{255}
+			} else {
+				pixelColor = color.Gray{0}
+			}
+
+			img.SetGray(j, i, pixelColor)
+		}
+	}
+	return saveImage(img, format, config.DebugParameter.VisualizedImagePath)
 }
