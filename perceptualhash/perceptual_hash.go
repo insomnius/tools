@@ -73,6 +73,23 @@ func FromPath(filePath string, configs ...Config) (string, error) {
 	return fmt.Sprintf("%016x", hash), nil
 }
 
+// CompareHashes compares two perceptual hashes and returns the Hamming distance.
+// The distance is the number of differing bits between the two hashes.
+func CompareHashes(hash1, hash2 string) (int, error) {
+	if len(hash1) != len(hash2) {
+		return 0, fmt.Errorf("hashes must be of the same length")
+	}
+
+	distance := 0
+	for i := 0; i < len(hash1); i++ {
+		if hash1[i] != hash2[i] {
+			distance++
+		}
+	}
+
+	return distance, nil
+}
+
 // preprocessImage resizes the image to 32x32 and converts it to grayscale.
 func preprocessImage(inputImage image.Image, config Config) *image.Gray {
 	resizedImage := image.NewGray(image.Rect(0, 0, 32, 32))
