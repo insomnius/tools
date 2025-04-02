@@ -27,15 +27,15 @@ def create_modified_versions():
     img = cv2.cvtColor(img, cv2.COLOR_BGR2RGB)  # Convert to RGB
 
     # 1. Create a strongly blurred version
-    blurred_img = cv2.GaussianBlur(img, (61, 61), 0)  # Increased blur strength
+    blurred_img = cv2.GaussianBlur(img, (121, 121), 0)  # Increased blur strength
     blur_output_path = os.path.join(output_dir, "cat_blurred.png")
     cv2.imwrite(blur_output_path, cv2.cvtColor(blurred_img, cv2.COLOR_RGB2BGR))
     print(f"Created stronger blurred image at {blur_output_path}")
 
-    # 2. Create a resized version (50% of original size)
+    # 2. Create a resized version
     img_pil = Image.fromarray(img)  # Convert NumPy array to PIL Image
     width, height = img_pil.size
-    resized_img = img_pil.resize((width // 6, height // 6))
+    resized_img = img_pil.resize((width // 80, height // 80))
     resize_output_path = os.path.join(output_dir, "cat_resized.png")
     resized_img.save(resize_output_path)
     print(f"Created resized image at {resize_output_path}")
@@ -43,8 +43,8 @@ def create_modified_versions():
     # 3. Create a more broken version
     img_array = np.array(img)
 
-    # Add random noise to 10% of pixels
-    num_corrupted_pixels = int(0.1 * img_array.size / img_array.shape[-1])
+    # Add random noise to 30% of pixels
+    num_corrupted_pixels = int(0.3 * img_array.size / img_array.shape[-1])
     for _ in range(num_corrupted_pixels):
         y = random.randint(0, img_array.shape[0] - 1)  # Height
         x = random.randint(0, img_array.shape[1] - 1)  # Width
@@ -62,17 +62,17 @@ def create_modified_versions():
         img_array[block_y:block_y + block_h, block_x:block_x + block_w] = np.random.randint(0, 256, size=(block_h, block_w, 3), dtype=np.uint8)
 
     # Apply a stronger motion blur to random areas
-    if random.random() < 0.7:  # Apply in 70% of cases
+    if random.random() < 0.8:  # Apply in 80% of cases
         kernel_size = random.choice([9, 11, 15])  # Stronger blur
         motion_blur_kernel = np.zeros((kernel_size, kernel_size))
         motion_blur_kernel[:, kernel_size // 2] = 1
         motion_blur_kernel /= kernel_size
         img_array = cv2.filter2D(img_array, -1, motion_blur_kernel)
 
-    # Save the broken image with aggressive JPEG compression (20% quality)
+    # Save the broken image with aggressive JPEG compression (10% quality)
     broken_img = Image.fromarray(img_array)
     broken_output_path = os.path.join(output_dir, "cat_broken.jpg")
-    broken_img.save(broken_output_path, quality=20)  # Low quality for more artifacts
+    broken_img.save(broken_output_path, quality=10)  # Low quality for more artifacts
     print(f"Created heavily broken image at {broken_output_path}")
 
 if __name__ == "__main__":
